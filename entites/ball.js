@@ -1,0 +1,9 @@
+export let ball = {
+
+    x:0,
+    y:0,
+    vx:0,
+    vy:0,
+    speed:400
+
+}
