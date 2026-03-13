@@ -79,7 +79,6 @@ window.gameState = {
     draw(){
 
         drawGame()
-        
 
     }
 
@@ -178,6 +177,8 @@ function drawGame(){
     writePoints()
 
     ctx.restore()
+
+    drawCRT()
 
 }
 
@@ -638,6 +639,34 @@ function updateShake(dt){
         shakeStrength *= 0.92
 
     }
+
+}
+
+function drawCRT(){
+
+    ctx.save()
+
+    // ===== Scanlines =====
+    ctx.globalAlpha = 0.15
+    ctx.fillStyle = "black"
+
+    for(let y = 0; y < h; y += 4){
+        ctx.fillRect(0, y, w, 2)
+    }
+
+    // ===== Vignette (bordas escuras) =====
+    let gradient = ctx.createRadialGradient(
+        w/2, h/2, h/4,
+        w/2, h/2, h
+    )
+
+    gradient.addColorStop(0, "rgba(0,0,0,0)")
+    gradient.addColorStop(1, "rgba(0,0,0,0.6)")
+
+    ctx.fillStyle = gradient
+    ctx.fillRect(0,0,w,h)
+
+    ctx.restore()
 
 }
 ///////////////////// Funções principal///////////////////////////////////////////
