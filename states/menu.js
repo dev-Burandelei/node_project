@@ -17,6 +17,17 @@ let flashMaxRadius = 0
 
 let crtFlicker = 0
 
+let crtRoll = 0
+let noiseTime = 0
+
+let crtWobbleTime = 0
+
+let mouse = {x:0, y:0}
+let exitButton = null
+
+let shutdownActive = false
+let shutdownProgress = 0
+
 window.menuState = {
     name :"Menu",
     onEnter(){
@@ -41,6 +52,15 @@ window.menuState = {
 
         titleTime += dt
         crtFlicker = Math.random() * 0.03
+        crtWobbleTime += dt
+
+        if(shutdownActive){
+            shutdownProgress += dt * 2.5 // velocidade do efeito
+
+            if(shutdownProgress >= 1){
+                window.location.href = "index.html"
+            }
+}
 
         updateWarp(dt)
         updateStars(dt)
@@ -59,7 +79,9 @@ window.menuState = {
 
         drawTitle()
         drawFlash()
+        drawExitButton()
         drawCRT()
+        drawShutdownEffect()
     },
 
     onKeyDown(e){
@@ -288,39 +310,126 @@ function drawFlash(){
 
 function drawCRT(){
 
+    noiseTime += 0.05
+    crtRoll += 1.5
+
     ctx.save()
 
-    // Curvatura da tela
-    ctx.translate(w/2, h/2)
-    ctx.scale(1.01, 0.98)
-    ctx.translate(-w/2, -h/2)
+    // WOBBLE
+    applyScreenWobble()
 
-    // Scanlines
-    //ctx.globalAlpha = 0.15
-    //ctx.fillStyle = "black"
-    ctx.globalAlpha = 0.12 + crtFlicker
+    // CURVATURA
+    ctx.translate(w/2,h/2)
 
-    for(let y = 0; y < h; y += 4){
-        ctx.fillRect(0, y, w, 2)
+    const curve = 0.04
+
+    ctx.transform(
+        1,
+        curve,
+        -curve,
+        1,
+        0,
+        0
+    )
+
+    ctx.translate(-w/2,-h/2)
+
+    // FLICKER GLOBAL
+    let flicker = 0.97 + Math.random()*0.06
+
+    ctx.fillStyle = `rgba(255,255,255,${(flicker-1)*0.5})`
+    ctx.fillRect(0,0,w,h)
+
+    // SCANLINES
+    ctx.globalAlpha = 0.15 + crtFlicker
+
+    for(let y=0; y<h; y+=3){
+
+        let intensity = 0.08 + Math.random()*0.05
+        ctx.fillStyle = `rgba(0,0,0,${intensity})`
+
+        ctx.fillRect(0,y,w,1)
+
     }
 
+    ctx.globalAlpha = 1
+
+    // PHOSPHOR GLOW
     ctx.globalAlpha = 0.04
-    ctx.fillStyle = "red"
+
+    ctx.fillStyle = "cyan"
     ctx.fillRect(-1,0,w,h)
 
-    ctx.fillStyle = "blue"
+    ctx.fillStyle = "magenta"
     ctx.fillRect(1,0,w,h)
 
     ctx.globalAlpha = 1
 
-    // Vinheta
-    let gradient = ctx.createRadialGradient(
-        w/2, h/2, w*0.3,
-        w/2, h/2, w
+    // ROLL BAR
+    let rollY = crtRoll % h
+
+    let rollGradient = ctx.createLinearGradient(
+        0, rollY-60,
+        0, rollY+60
     )
 
-    gradient.addColorStop(0, "rgba(0,0,0,0)")
-    gradient.addColorStop(1, "rgba(0,0,0,0.5)")
+    rollGradient.addColorStop(0,"rgba(255,255,255,0)")
+    rollGradient.addColorStop(0.5,"rgba(255,255,255,0.06)")
+    rollGradient.addColorStop(1,"rgba(255,255,255,0)")
+
+    ctx.fillStyle = rollGradient
+    ctx.fillRect(0,rollY-60,w,120)
+
+    // STATIC NOISE
+    ctx.globalAlpha = 0.05
+
+    for(let i=0;i<350;i++){
+
+        let x = Math.random()*w
+        let y = Math.random()*h
+        let s = Math.random()*2
+
+        ctx.fillRect(x,y,s,s)
+
+    }
+
+    ctx.globalAlpha = 1
+
+    // DISTORÇÃO HORIZONTAL
+    if(Math.random() < 0.015){
+
+        let y = Math.random()*h
+        let height = 4 + Math.random()*6
+        let shift = (Math.random()-0.5)*15
+
+        ctx.save()
+
+        ctx.globalAlpha = 0.12
+
+        ctx.drawImage(
+            canvas,
+            0,y,w,height,
+            shift,y,w,height
+        )
+
+        ctx.restore()
+
+    }
+
+    // BLOOM
+    drawBloom()
+
+    // SHADOW MASK
+    drawShadowMask()
+
+    // VIGNETTE FINAL
+    let gradient = ctx.createRadialGradient(
+        w/2, h/2, w*0.25,
+        w/2, h/2, w*0.9
+    )
+
+    gradient.addColorStop(0,"rgba(0,0,0,0)")
+    gradient.addColorStop(1,"rgba(0,0,0,0.65)")
 
     ctx.fillStyle = gradient
     ctx.fillRect(0,0,w,h)
@@ -329,3 +438,142 @@ function drawCRT(){
 
 }
 
+function drawShadowMask(){
+
+    ctx.save()
+
+    ctx.globalAlpha = 0.06
+
+    for(let x = 0; x < w; x += 3){
+
+        ctx.fillStyle = "red"
+        ctx.fillRect(x,0,1,h)
+
+        ctx.fillStyle = "green"
+        ctx.fillRect(x+1,0,1,h)
+
+        ctx.fillStyle = "blue"
+        ctx.fillRect(x+2,0,1,h)
+
+    }
+
+    ctx.restore()
+
+}
+
+function drawBloom(){
+
+    ctx.save()
+
+    ctx.globalAlpha = 0.08
+    ctx.filter = "blur(6px)"
+
+    ctx.drawImage(canvas,0,0)
+
+    ctx.filter = "none"
+    ctx.restore()
+
+}
+
+function applyScreenWobble(){
+
+    let wobbleX = Math.sin(crtWobbleTime * 2) * 2
+    let wobbleY = Math.cos(crtWobbleTime * 1.7) * 2
+
+    ctx.translate(wobbleX, wobbleY)
+
+}
+
+function drawExitButton(){
+
+    const btnW = 180
+    const btnH = 50
+    const x = w/2 - btnW/2
+    const y = h/2 + 120
+
+    ctx.save()
+
+    // Hover simples (mouse)
+    let hover = mouse.x > x && mouse.x < x+btnW &&
+                mouse.y > y && mouse.y < y+btnH
+
+    ctx.fillStyle = hover ? "cyan" : "transparent"
+    ctx.strokeStyle = "cyan"
+    ctx.lineWidth = 2
+
+    ctx.fillRect(x,y,btnW,btnH)
+    ctx.strokeRect(x,y,btnW,btnH)
+
+    ctx.fillStyle = hover ? "black" : "cyan"
+    ctx.font = "20px monospace"
+    ctx.textAlign = "center"
+
+    ctx.fillText("SAIR", w/2, y + 32)
+
+    ctx.restore()
+
+    // salvar área clicável
+    exitButton = {x,y,w:btnW,h:btnH}
+}
+
+canvas.addEventListener("mousemove", e => {
+    mouse.x = e.clientX
+    mouse.y = e.clientY
+})
+
+canvas.addEventListener("click", () => {
+
+    if(!exitButton) return
+
+    if(
+        mouse.x > exitButton.x &&
+        mouse.x < exitButton.x + exitButton.w &&
+        mouse.y > exitButton.y &&
+        mouse.y < exitButton.y + exitButton.h
+    ){
+        shutdownActive = true
+        shutdownProgress = 0
+    }
+
+})
+
+function drawShutdownEffect(){
+
+    if(!shutdownActive) return
+
+    let centerY = h / 2
+
+    // Altura que vai diminuindo
+    let currentHeight = h * (1 - shutdownProgress)
+
+    ctx.save()
+
+    // recorta a tela (efeito de fechar)
+    ctx.beginPath()
+    ctx.rect(0, centerY - currentHeight/2, w, currentHeight)
+    ctx.clip()
+
+    // desenha o que já está na tela dentro do recorte
+    ctx.drawImage(canvas, 0, 0)
+
+    ctx.restore()
+
+    // Linha branca no centro (efeito CRT)
+    if(shutdownProgress > 0.8){
+
+        let alpha = (shutdownProgress - 0.8) * 5
+
+        ctx.save()
+        ctx.globalAlpha = alpha
+
+        ctx.fillStyle = "white"
+        ctx.fillRect(0, centerY - 2, w, 4)
+
+        ctx.restore()
+    }
+
+    // escurece o resto
+    ctx.fillStyle = "black"
+    ctx.fillRect(0, 0, w, centerY - currentHeight/2)
+    ctx.fillRect(0, centerY + currentHeight/2, w, h)
+}

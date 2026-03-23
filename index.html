@@ -1,12 +1,87 @@
-<html>
-    <body style="margin:0; overflow:hidden;">
-    
-        <canvas id="canvas"></canvas>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Pong Game</title>
 
-        <script src="core/debug.js"></script>
+<style>
+html, body {
+    background: #000000;
+}
+body{
+    transition: opacity 0.6s ease;
+    opacity: 1;
+    background: black;
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: radial-gradient(circle, #0a0a0a, #000);
+    color:rgb(30, 195, 214);
+    font-family: monospace;
+}
 
-        <script src="states/menu.js"></script>
-        <script src="states/game.js"></script>
+.container{
+    text-align:center;
+}
 
-    </body>
+h1{
+    font-size:80px;
+    margin-bottom:20px;
+    text-shadow: 0 0 20px cyan;
+}
+
+p{
+    opacity:0.7;
+    margin-bottom:40px;
+}
+
+button{
+    padding:15px 40px;
+    font-size:20px;
+    background:transparent;
+    border:2px solid cyan;
+    color:cyan;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+button:hover{
+    background:cyan;
+    color:black;
+    box-shadow:0 0 20px cyan;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+    <h1>PONG</h1>
+    <p>Prepare-se para um clássico com estilo retrô 🚀</p>
+
+    <button onclick="startGame()">JOGAR</button>
+</div>
+
+<script>
+    document.documentElement.style.background = "#000" // garante fundo imediato
+    document.body.style.opacity = 0
+
+    window.addEventListener("DOMContentLoaded", () => {
+        requestAnimationFrame(() => {
+            document.body.style.opacity = 1
+        })
+    })
+
+    function startGame(){
+        document.body.style.opacity = 0
+
+        setTimeout(() => {
+            window.location.href = "pong.html"
+        }, 600)
+    }
+</script>
+
+</body>
 </html>
