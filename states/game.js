@@ -160,6 +160,7 @@ function drawGame(){
         ctx.translate(dx, dy)
 
     }
+    
 
     drawRect(0,0,w,h,"#000")
 

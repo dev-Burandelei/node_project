@@ -57,7 +57,7 @@ window.menuState = {
         if(shutdownActive){
             shutdownProgress += dt * 2.5 // velocidade do efeito
 
-            if(shutdownProgress >= 1){
+            if(shutdownProgress >= 0.9){
                 window.location.href = "index.html"
             }
 }
@@ -71,7 +71,7 @@ window.menuState = {
 
     draw(){
 
-        ctx.fillStyle = "black"
+        ctx.fillStyle = "rgba(0,0,0,0.2)"
         ctx.fillRect(0,0,w,h)
 
         drawStars()
