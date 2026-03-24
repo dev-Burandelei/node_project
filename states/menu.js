@@ -55,12 +55,14 @@ window.menuState = {
         crtWobbleTime += dt
 
         if(shutdownActive){
-            shutdownProgress += dt * 2.5 // velocidade do efeito
+            shutdownProgress += dt * 1.8
 
-            if(shutdownProgress >= 0.9){
+            // começa a carregar antes de terminar (suaviza)
+            if(shutdownProgress >= 0.72){
                 window.location.href = "index.html"
             }
-}
+        }
+
 
         updateWarp(dt)
         updateStars(dt)
@@ -531,8 +533,9 @@ canvas.addEventListener("click", () => {
         mouse.y > exitButton.y &&
         mouse.y < exitButton.y + exitButton.h
     ){
-        shutdownActive = true
-        shutdownProgress = 0
+        if(typeof showExitMenu === "function"){
+            showExitMenu()
+        }
     }
 
 })
@@ -541,39 +544,54 @@ function drawShutdownEffect(){
 
     if(!shutdownActive) return
 
-    let centerY = h / 2
-
-    // Altura que vai diminuindo
-    let currentHeight = h * (1 - shutdownProgress)
-
     ctx.save()
 
-    // recorta a tela (efeito de fechar)
-    ctx.beginPath()
-    ctx.rect(0, centerY - currentHeight/2, w, currentHeight)
-    ctx.clip()
+    let p = shutdownProgress
 
-    // desenha o que já está na tela dentro do recorte
+    // ===== 1. COMPRESSÃO VERTICAL =====
+    let scaleY = Math.max(0.001, 1 - p * 1.2)
+
+    ctx.translate(w/2, h/2)
+    ctx.scale(1, scaleY)
+    ctx.translate(-w/2, -h/2)
+
     ctx.drawImage(canvas, 0, 0)
 
     ctx.restore()
 
-    // Linha branca no centro (efeito CRT)
-    if(shutdownProgress > 0.8){
+    // ===== 2. LINHA BRANCA CENTRAL =====
+    if(p > 0.6){
 
-        let alpha = (shutdownProgress - 0.8) * 5
+        let intensity = (p - 0.6) * 2.5
 
         ctx.save()
-        ctx.globalAlpha = alpha
 
-        ctx.fillStyle = "white"
-        ctx.fillRect(0, centerY - 2, w, 4)
+        let glow = 40 + Math.sin(p * 50) * 20
+
+        ctx.shadowBlur = glow
+        ctx.shadowColor = "white"
+
+        ctx.fillStyle = `rgba(255,255,255,${intensity})`
+
+        let lineHeight = 2 + (1 - p) * 20
+
+        ctx.fillRect(0, h/2 - lineHeight/2, w, lineHeight)
 
         ctx.restore()
     }
 
-    // escurece o resto
-    ctx.fillStyle = "black"
-    ctx.fillRect(0, 0, w, centerY - currentHeight/2)
-    ctx.fillRect(0, centerY + currentHeight/2, w, h)
+    // ===== 3. FLASH FINAL =====
+    if(p > 0.85){
+
+        let fade = (p - 0.85) * 6
+
+        ctx.fillStyle = `rgba(0,0,0,${fade})`
+        ctx.fillRect(0,0,w,h)
+    }
+
+}
+
+function triggerShutdown(){
+    shutdownActive = true
+    shutdownProgress = 0
 }
