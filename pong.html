@@ -58,6 +58,22 @@
 // ===== BLOQUEAR RELOAD =====
 document.addEventListener("keydown", function(e){
 
+    // ESC abre/fecha menu
+    if(e.key === "Escape"){
+
+        const menu = document.getElementById("exitMenu")
+
+        if(menu){
+            // já aberto → fechar
+            menu.remove()
+            window.timeScale = 1
+        } else {
+            // abrir menu
+            showExitMenu()
+        }
+    }
+
+    // bloquear reload
     if(e.key === "F5" || (e.ctrlKey && e.key === "r")){
         e.preventDefault()
         showExitMenu()
