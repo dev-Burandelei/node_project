@@ -27,38 +27,6 @@ html, body{
     z-index:999;
 }
 
-/* ===== TERMINAL MODAL ===== */
-#terminalModal{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background: rgba(0,0,0,0.95);
-    color:lime;
-    font-family: monospace;
-    padding:40px;
-    display:none;
-    z-index:1000;
-}
-
-#terminalContent{
-    max-width:800px;
-    white-space:pre-wrap;
-    line-height:1.5;
-}
-
-#closeTerminal{
-    position:absolute;
-    top:20px;
-    right:20px;
-    padding:10px 20px;
-    border:2px solid lime;
-    background:transparent;
-    color:lime;
-    cursor:pointer;
-}
-
 /* ===== LAYOUT ===== */
 body{
     display:flex;
@@ -80,6 +48,7 @@ body{
     border:2px solid cyan;
     color:cyan;
     cursor:pointer;
+    transition:0.3s;
 }
 
 .nav button:hover{
@@ -87,19 +56,7 @@ body{
     color:black;
 }
 
-/* SECTIONS */
-.section{
-    display:none;
-    flex-direction:column;
-    align-items:center;
-    margin-top:40px;
-}
-
-.section.active{
-    display:flex;
-}
-
-/* TÍTULO */
+/* ===== TÍTULO ===== */
 h1{
     font-size:60px;
     margin-bottom:30px;
@@ -121,6 +78,7 @@ h1{
     display:flex;
     justify-content:flex-end;
     align-items:center;
+    transition:0.3s;
 }
 
 .tape:hover{
@@ -148,26 +106,6 @@ h1{
     justify-content:center;
     align-items:center;
 }
-
-/* ===== CARDS ===== */
-.cards{
-    display:flex;
-    gap:30px;
-}
-
-.card{
-    width:220px;
-    padding:20px;
-    border:2px solid cyan;
-    background:#111;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-.card:hover{
-    transform:translateY(-10px);
-    box-shadow:0 0 20px cyan;
-}
 </style>
 </head>
 
@@ -175,65 +113,35 @@ h1{
 
 <div id="fadeOverlay"></div>
 
-<div id="terminalModal">
-    <button id="closeTerminal">FECHAR</button>
-    <div id="terminalContent"></div>
-</div>
-
 <audio id="insertSound" src="sounds/clack.mp3"></audio>
 <audio id="errorSound" src="sounds/error_menu.mp3"></audio>
 
 <!-- NAV -->
 <div class="nav">
     <button onclick="showSection('games')">🎮 Jogos</button>
-    <button onclick="showSection('articles')">📚 Arcadêmico</button>
+    <button onclick="goToArticles()">📚 Arcadêmico</button>
 </div>
 
 <!-- JOGOS -->
-<div id="games" class="section active">
-    <h1>ARCADE</h1>
+<h1>ARCADE</h1>
 
-    <div class="library">
-        <div class="tape" onclick="startGame('pong.html', this)">
-            <div class="label">PONG</div>
-        </div>
-
-        <div class="tape" onclick="errorMenu('Em breve')">
-            <div class="label">???</div>
-        </div>
+<div class="library">
+    <div class="tape" onclick="startGame('pong.html', this)">
+        <div class="label">PONG</div>
     </div>
-</div>
 
-<!-- ARTIGOS -->
-<div id="articles" class="section">
-    <h1>ARCADÊMICO</h1>
-
-    <div class="cards">
-
-        <div class="card" onclick="openArticle('Pong & Física', 'Colisões, vetores e reflexão são essenciais para o movimento da bola.')">
-            <h3>📄 Pong & Física</h3>
-            <p>Como colisões funcionam.</p>
-        </div>
-
-        <div class="card" onclick="openArticle('Game Loop', 'requestAnimationFrame mantém o jogo rodando em sincronia com o navegador.')">
-            <h3>📄 Game Loop</h3>
-            <p>Loop do jogo.</p>
-        </div>
-
+    <div class="tape" onclick="errorMenu()">
+        <div class="label">???</div>
     </div>
 </div>
 
 <script>
-function showSection(id){
-    document.querySelectorAll(".section").forEach(sec=>{
-        sec.classList.remove("active")
-    })
-    document.getElementById(id).classList.add("active")
-}
+let transitioning = false
 
 // ===== ERRO =====
-function errorMenu(msg){
+function errorMenu(){
     const sound = document.getElementById("errorSound")
+
     sound.currentTime = 0.4
     sound.play().catch(()=>{})
 }
@@ -241,15 +149,16 @@ function errorMenu(msg){
 // ===== START GAME =====
 function startGame(url, el){
 
-    if(el.classList.contains("inserting")) return
+    if(transitioning) return
+    transitioning = true
 
     const sound = document.getElementById("insertSound")
 
-    // som sincronizado
+    // som sincronizado com "encaixe"
     setTimeout(()=>{
         sound.currentTime = 1.2
         sound.play().catch(()=>{})
-    },0)
+    },100)
 
     el.classList.add("inserting")
 
@@ -264,31 +173,19 @@ function startGame(url, el){
     },900)
 }
 
-// ===== TERMINAL =====
-function openArticle(title, text){
+// ===== IR PARA ARTIGOS =====
+function goToArticles(){
 
-    const modal = document.getElementById("terminalModal")
-    const content = document.getElementById("terminalContent")
+    if(transitioning) return
+    transitioning = true
 
-    modal.style.display = "block"
-    content.innerHTML = ""
+    const overlay = document.getElementById("fadeOverlay")
 
-    let fullText = `> ${title}\n\n${text}\n\n> _`
+    overlay.style.opacity = 1
 
-    let i = 0
-
-    let interval = setInterval(()=>{
-        content.innerHTML += fullText[i]
-        i++
-
-        if(i >= fullText.length){
-            clearInterval(interval)
-        }
-    },20)
-}
-
-document.getElementById("closeTerminal").onclick = () => {
-    document.getElementById("terminalModal").style.display = "none"
+    setTimeout(()=>{
+        window.location.href = "articles.html"
+    },500)
 }
 </script>
 
