@@ -2,190 +2,73 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Arcade Retrô</title>
+<title>Arcade Hub</title>
 
 <style>
-html, body{
-    margin:0;
-    height:100%;
-    background:#000;
-    font-family: monospace;
-    overflow:hidden;
-}
-
-/* ===== OVERLAY ===== */
-#fadeOverlay{
-    position:fixed;
-    top:0;
-    left:0;
-    width:100%;
-    height:100%;
-    background:black;
-    opacity:0;
-    pointer-events:none;
-    transition: opacity 0.5s ease;
-    z-index:999;
-}
-
-/* ===== LAYOUT ===== */
 body{
+    margin:0;
+    height:100vh;
     display:flex;
     flex-direction:column;
-    align-items:center;
-    background: radial-gradient(circle, #0a0a0a, #000);
-    color:cyan;
-}
-
-/* NAV */
-.nav{
-    margin-top:20px;
-}
-
-.nav button{
-    margin:0 10px;
-    padding:10px 20px;
-    background:transparent;
-    border:2px solid cyan;
-    color:cyan;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-.nav button:hover{
-    background:cyan;
-    color:black;
-}
-
-/* ===== TÍTULO ===== */
-h1{
-    font-size:60px;
-    margin-bottom:30px;
-    text-shadow: 0 0 20px cyan;
-}
-
-/* ===== FITAS ===== */
-.library{
-    display:flex;
-    gap:40px;
-}
-
-.tape{
-    width:180px;
-    height:240px;
-    background:#111;
-    border:2px solid cyan;
-    cursor:pointer;
-    display:flex;
-    justify-content:flex-end;
-    align-items:center;
-    transition:0.3s;
-}
-
-.tape:hover{
-    transform: translateY(-10px) scale(1.05);
-    box-shadow:0 0 30px cyan;
-}
-
-.tape.inserting{
-    animation: insertTape 0.8s forwards;
-}
-
-@keyframes insertTape{
-    100%{
-        transform: scale(0.2) translateY(600px);
-        opacity:0;
-    }
-}
-
-.label{
-    width:100%;
-    height:60px;
-    background:cyan;
-    color:black;
-    display:flex;
     justify-content:center;
     align-items:center;
+    background: radial-gradient(circle, #0a0a0a, #000);
+    font-family: monospace;
+    color:cyan;
+}
+
+/* título */
+h1{
+    font-size:70px;
+    text-shadow:0 0 20px cyan;
+    margin-bottom:50px;
+}
+
+/* menu */
+.menu{
+    display:flex;
+    gap:30px;
+}
+
+.btn{
+    padding:15px 40px;
+    border:2px solid cyan;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.btn:hover{
+    background:cyan;
+    color:black;
+    box-shadow:0 0 20px cyan;
 }
 </style>
 </head>
 
 <body>
 
-<div id="fadeOverlay"></div>
+<h1>ARCADE HUB</h1>
 
-<audio id="insertSound" src="sounds/clack.mp3"></audio>
-<audio id="errorSound" src="sounds/error_menu.mp3"></audio>
-
-<!-- NAV -->
-<div class="nav">
-    <button onclick="showSection('games')">🎮 Jogos</button>
-    <button onclick="goToArticles()">📚 Arcadêmico</button>
-</div>
-
-<!-- JOGOS -->
-<h1>ARCADE</h1>
-
-<div class="library">
-    <div class="tape" onclick="startGame('pong.html', this)">
-        <div class="label">PONG</div>
-    </div>
-
-    <div class="tape" onclick="errorMenu()">
-        <div class="label">???</div>
-    </div>
+<div class="menu">
+    <div class="btn" onclick="go('games.html')">🎮 JOGOS</div>
+    <div class="btn" onclick="go('articles.html')">📚 ARCADÊMICO</div>
 </div>
 
 <script>
-let transitioning = false
-
-// ===== ERRO =====
-function errorMenu(){
-    const sound = document.getElementById("errorSound")
-
-    sound.currentTime = 0.4
-    sound.play().catch(()=>{})
-}
-
-// ===== START GAME =====
-function startGame(url, el){
-
-    if(transitioning) return
-    transitioning = true
-
-    const sound = document.getElementById("insertSound")
-
-    // som sincronizado com "encaixe"
-    setTimeout(()=>{
-        sound.currentTime = 1.2
-        sound.play().catch(()=>{})
-    },100)
-
-    el.classList.add("inserting")
-
-    const overlay = document.getElementById("fadeOverlay")
+function go(page){
+    document.body.style.opacity = 0
 
     setTimeout(()=>{
-        overlay.style.opacity = 1
+        window.location.href = page
     },300)
-
-    setTimeout(()=>{
-        window.location.href = url
-    },900)
 }
 
-// ===== IR PARA ARTIGOS =====
-function goToArticles(){
-
-    if(transitioning) return
-    transitioning = true
-
-    const overlay = document.getElementById("fadeOverlay")
-
-    overlay.style.opacity = 1
-
-    setTimeout(()=>{
-        window.location.href = "articles.html"
-    },500)
+// fade in
+document.body.style.opacity = 0
+window.onload = () => {
+    requestAnimationFrame(()=>{
+        document.body.style.opacity = 1
+    })
 }
 </script>
 
