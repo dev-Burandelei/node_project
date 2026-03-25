@@ -38,7 +38,7 @@ h1{
 /* ===== CARROSSEL ===== */
 .carousel-wrapper{
     position:relative;
-    width:80%;
+    width:60%;
     overflow:hidden;
 }
 
@@ -201,6 +201,7 @@ h1{
 <div class="back" onclick="goBack()">⬅ Voltar</div>
 
 <script>
+    
 let transitioning = false
 
 const carousel = document.getElementById("carousel")
@@ -211,6 +212,8 @@ carousel.addEventListener("scroll", () => {
 
     requestAnimationFrame(updateFocus)
 
+    if(isManualScrolling) return
+
     clearTimeout(snapTimeout)
 
     snapTimeout = setTimeout(() => {
@@ -219,17 +222,34 @@ carousel.addEventListener("scroll", () => {
 })
 
 // inicializa ao carregar
-window.addEventListener("load", updateFocus)
+window.addEventListener("load", () => {
+    updateFocus()
+
+    // garante foco inicial no primeiro elemento
+    focusOn(0)
+})
 
 // ===== SCROLL BOTÕES =====
 function scrollLeft(){
-    carousel.scrollBy({ left: -300, behavior: "smooth" })
-    setTimeout(updateFocus, 400)
+
+    const tapes = [...document.querySelectorAll(".tape")]
+    let index = getFocusedIndex()
+
+    // 🔁 loop circular
+    index = (index - 1 + tapes.length) % tapes.length
+
+    focusOn(index)
 }
 
 function scrollRight(){
-    carousel.scrollBy({ left: 300, behavior: "smooth" })
-    setTimeout(updateFocus, 400)
+
+    const tapes = [...document.querySelectorAll(".tape")]
+    let index = getFocusedIndex()
+
+    // 🔁 loop circular
+    index = (index + 1) % tapes.length
+
+    focusOn(index)
 }
 
 // ===== DRAG COM MOUSE =====
@@ -385,6 +405,59 @@ function snapToCenter(){
             behavior: "smooth"
         })
     }
+}
+
+function getFocusedIndex(){
+
+    const tapes = [...document.querySelectorAll(".tape")]
+    let index = tapes.findIndex(t => t.classList.contains("focus"))
+
+    // 👇 fallback: pega o mais próximo do centro
+    if(index === -1){
+
+        let closest = 0
+        let minDist = Infinity
+
+        const center = carousel.scrollLeft + carousel.clientWidth / 2
+
+        tapes.forEach((t, i)=>{
+            const elCenter = t.offsetLeft + t.clientWidth / 2
+            const dist = Math.abs(center - elCenter)
+
+            if(dist < minDist){
+                minDist = dist
+                closest = i
+            }
+        })
+
+        return closest
+    }
+
+    return index
+}
+
+let isManualScrolling = false
+
+function focusOn(index){
+
+    isManualScrolling = true
+
+    const tapes = [...document.querySelectorAll(".tape")]
+    const el = tapes[index]
+
+    const offset =
+        el.offsetLeft -
+        (carousel.clientWidth / 2) +
+        (el.clientWidth / 2)
+
+    carousel.scrollTo({
+        left: offset,
+        behavior: "smooth"
+    })
+
+    setTimeout(() => {
+        isManualScrolling = false
+    }, 400)
 }
 </script>
 
