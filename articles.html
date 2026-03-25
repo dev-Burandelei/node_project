@@ -117,17 +117,17 @@ h1{
 
 <div class="cards">
 
-    <div class="card" onclick="openArticle('Pong & Física', 'Colisões, vetores e reflexão determinam o comportamento da bola.')">
+    <div class="card" onclick="openArticle('pong.txt')">
         <h3>📄 Pong & Física</h3>
         <p>Colisões e vetores.</p>
     </div>
 
-    <div class="card" onclick="openArticle('Game Loop', 'requestAnimationFrame sincroniza o jogo com o refresh do navegador.')">
+    <div class="card" onclick="openArticle('gameloop.txt')">
         <h3>📄 Game Loop</h3>
         <p>Loop do jogo.</p>
     </div>
 
-    <div class="card" onclick="openArticle('Efeito CRT', 'Scanlines, glow e distorção simulam TVs antigas.')">
+    <div class="card" onclick="openArticle('crt.txt')">
         <h3>📄 Efeito CRT</h3>
         <p>Visual retrô.</p>
     </div>
@@ -156,7 +156,7 @@ function goBack(){
 }
 
 // TERMINAL EFFECT
-function openArticle(title, text){
+async function openArticle(file){
 
     const modal = document.getElementById("terminalModal")
     const content = document.getElementById("terminalContent")
@@ -164,23 +164,57 @@ function openArticle(title, text){
     modal.style.display = "block"
     content.innerHTML = ""
 
-    let fullText = `> ${title}\n\n${text}\n\n> _`
-    let i = 0
+    try {
+        const response = await fetch(`articles/${file}`)
+        const text = await response.text()
 
-    const interval = setInterval(()=>{
-        content.innerHTML += fullText[i]
-        i++
+        let i = 0
 
-        if(i >= fullText.length){
-            clearInterval(interval)
-        }
-    }, 20)
+        const typingSound = new Audio("sounds/type.mp3")
+        typingSound.volume = 0.1
+
+        const interval = setInterval(()=>{
+
+            content.innerHTML += text[i]
+
+            if(i % 4 === 0){
+                typingSound.currentTime = 10
+                typingSound.play().catch(()=>{})
+            }
+
+            i++
+
+           if(i >= text.length){
+                clearInterval(interval)
+
+                // fade out do som
+                let fade = setInterval(()=>{
+                    typingSound.volume -= 0.05
+
+                    if(typingSound.volume <= 0){
+                        typingSound.pause()
+                        typingSound.currentTime = 0
+                        typingSound.volume = 0.2
+                        clearInterval(fade)
+                    }
+                }, 30)
+            }
+
+        }, 20)
+
+    } catch (err){
+        content.innerHTML = "> ERRO AO CARREGAR ARQUIVO"
+        console.error(err)
+    }
 }
+
 
 // FECHAR TERMINAL
 document.getElementById("closeTerminal").addEventListener("click", () => {
     document.getElementById("terminalModal").style.display = "none"
 })
+
+
 </script>
 
 </body>

@@ -1,0 +1,7 @@
+PONG & FÍSICA
+
+Colisões, vetores e reflexão determinam o comportamento da bola.
+
+- Inversão de direção (vx, vy)
+- Ângulo baseado no impacto
+- Conservação de velocidade
