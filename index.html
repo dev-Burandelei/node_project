@@ -15,6 +15,7 @@ body{
     background: radial-gradient(circle, #0a0a0a, #000);
     font-family: monospace;
     color:cyan;
+    transition: opacity 0.3s;
 }
 
 /* título */
@@ -22,12 +23,46 @@ h1{
     font-size:70px;
     text-shadow:0 0 20px cyan;
     margin-bottom:50px;
+    animation: glow 2s infinite alternate;
+}
+
+/* animação neon */
+@keyframes glow {
+    from { text-shadow: 0 0 10px cyan; }
+    to { text-shadow: 0 0 30px cyan; }
 }
 
 /* menu */
 .menu{
     display:flex;
     gap:30px;
+}
+
+.login{
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+}
+
+/* NÃO LOGADO */
+.login button.off{
+    border-color: gray;
+    color: gray;
+}
+
+/* LOGADO */
+.login button.on{
+    border-color: #00ff88;
+    color: #00ff88;
+    box-shadow: 0 0 15px #00ff88;
+    animation: pulse 1.5s infinite alternate;
+}
+
+/* hover */
+.login button:hover{
+    transform: scale(1.05);
 }
 
 .btn{
@@ -41,6 +76,26 @@ h1{
     background:cyan;
     color:black;
     box-shadow:0 0 20px cyan;
+    transform: scale(1.05);
+}
+
+/* iframe responsivo */
+iframe{
+    margin-top:40px;
+    width:90%;
+    max-width:400px;
+    height:80px;
+    border-radius:12px;
+    box-shadow:0 0 20px cyan;
+    transition:0.3s;
+}
+
+iframe:hover{
+    transform: scale(1.05);
+}
+@keyframes pulse{
+    from { box-shadow: 0 0 10px #00ff88; }
+    to { box-shadow: 0 0 25px #00ff88; }
 }
 </style>
 </head>
@@ -50,26 +105,194 @@ h1{
 <h1>ARCADE HUB</h1>
 
 <div class="menu">
-    <div class="btn" onclick="go('games.html')">🎮 JOGOS</div>
-    <div class="btn" onclick="go('articles.html')">📚 ARCADÊMICO</div>
+    <div class="btn" id="btnGames">🎮 JOGOS</div>
+    <div class="btn" id="btnArticles">📚 ARCADÊMICO</div>
 </div>
 
-<script>
+<div class="login"> 
+    <button id="loginBtn">🎧 Login com Spotify</button>
+</div>
+
+<!-- Spotify Embed -->
+<iframe 
+src="https://open.spotify.com/embed/playlist/4N55GkBdFydJjNsIbTTwUO" 
+frameborder="0" 
+allow="autoplay; encrypted-media" 
+loading="lazy">
+</iframe>
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script type="module">
+
+let accessToken = null;
+
+function updateLoginUI(isLogged){
+    const btn = document.getElementById("loginBtn");
+    if(!btn) return;
+
+    if(isLogged){
+        btn.classList.remove("off");
+        btn.classList.add("on");
+        btn.textContent = "🟢 Conectado";
+    }else{
+        btn.classList.remove("on");
+        btn.classList.add("off");
+        btn.textContent = "⚪ Login Spotify";
+    }
+}
+
+// ---------------- NAV ----------------
 function go(page){
     document.body.style.opacity = 0
-
-    setTimeout(()=>{
-        window.location.href = page
-    },300)
+    document.body.style.transform = "scale(0.98)"
+    setTimeout(()=> window.location.href = page, 300)
 }
 
-// fade in
+// ---------------- DOM READY ----------------
+document.addEventListener("DOMContentLoaded", async () => {
+
+    const isLogged = localStorage.getItem("spotify_logged") === "true";
+    updateLoginUI(isLogged);
+
+    document.getElementById("btnGames")
+        .addEventListener("click", () => go("games.html"));
+
+    document.getElementById("btnArticles")
+        .addEventListener("click", () => go("articles.html"));
+
+    document.getElementById("loginBtn").onclick = loginSpotify;
+
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+
+    if (code) {
+        const tokenData = await getToken(code);
+        accessToken = tokenData.access_token;
+
+        updateLoginUI(true); // ✅ atualiza botão
+        localStorage.setItem("spotify_logged", "true");
+
+        console.log("✅ Logado!");
+
+        window.history.replaceState({}, document.title, "/");
+    }
+
+    if (!accessToken && isLogged) {
+        updateLoginUI(false);
+        localStorage.removeItem("spotify_logged");
+    }
+});
+
+// ---------------- LOGIN ----------------
+const clientId = "c7cb17ddb41942979fe964956d470ce0";
+const redirectUri = "http://127.0.0.1:5500/Pong/index.html";
+
+const scopes = [
+  "user-read-playback-state",
+  "user-modify-playback-state",
+  "user-read-currently-playing",
+  "user-top-read",
+  "streaming"
+];
+
+async function loginSpotify(){
+  const verifier = generateRandomString(64);
+  const challenge = await generateCodeChallenge(verifier);
+
+  localStorage.setItem("verifier", verifier);
+
+  const params = new URLSearchParams({
+    response_type: "code",
+    client_id: clientId,
+    scope: scopes.join(" "),
+    code_challenge_method: "S256",
+    code_challenge: challenge,
+    redirect_uri: redirectUri
+  });
+
+  window.location = `https://accounts.spotify.com/authorize?${params}`;
+
+ 
+}
+
+// ---------------- PKCE ----------------
+function generateRandomString(length) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(length)))
+    .map(x => chars[x % chars.length])
+    .join('');
+}
+
+async function generateCodeChallenge(verifier) {
+  const data = new TextEncoder().encode(verifier);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+
+  return btoa(String.fromCharCode(...new Uint8Array(digest)))
+    .replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+}
+
+// ---------------- TOKEN ----------------
+async function getToken(code) {
+  const verifier = localStorage.getItem("verifier");
+
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: redirectUri,
+      code_verifier: verifier
+    })
+  });
+  return await res.json();
+}
+
+// ---------------- PLAYER ----------------
+window.onSpotifyWebPlaybackSDKReady = () => {
+
+  if (!accessToken) {
+    console.warn("⚠️ Faça login primeiro");
+    return;
+  }
+
+  const player = new Spotify.Player({
+    name: 'Arcade Player',
+    getOAuthToken: cb => cb(accessToken),
+    volume: 0.5
+  });
+
+  player.addListener('ready', ({ device_id }) => {
+    console.log('🎧 Player pronto!', device_id);
+
+    // tocar playlist
+    play(device_id);
+  });
+
+  player.connect();
+};
+
+// ---------------- PLAY ----------------
+async function play(device_id) {
+  await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${device_id}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      context_uri: "spotify:playlist:4N55GkBdFydJjNsIbTTwUO"
+    })
+  });
+}
+
+// ---------------- FADE ----------------
 document.body.style.opacity = 0
 window.onload = () => {
-    requestAnimationFrame(()=>{
-        document.body.style.opacity = 1
-    })
+    requestAnimationFrame(()=> document.body.style.opacity = 1)
 }
+
 </script>
 
 </body>
