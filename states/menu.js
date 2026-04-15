@@ -24,6 +24,7 @@ let crtWobbleTime = 0
 
 let mouse = {x:0, y:0}
 let exitButton = null
+let multiButton = null
 
 let shutdownActive = false
 let shutdownProgress = 0
@@ -82,6 +83,7 @@ window.menuState = {
         drawTitle()
         drawFlash()
         drawExitButton()
+        drawMultiButton()
         drawCRT()
         drawShutdownEffect()
     },
@@ -518,6 +520,39 @@ function drawExitButton(){
     exitButton = {x,y,w:btnW,h:btnH}
 }
 
+
+function drawMultiButton(){
+
+    const btnW = 180
+    const btnH = 50
+    const x = w/2 - btnW/2
+    const y = h/2 + 60
+
+    ctx.save()
+
+    // Hover simples (mouse)
+    let hover = mouse.x > x && mouse.x < x+btnW &&
+                mouse.y > y && mouse.y < y+btnH
+
+    ctx.fillStyle = hover ? "cyan" : "transparent"
+    ctx.strokeStyle = "cyan"
+    ctx.lineWidth = 2
+
+    ctx.fillRect(x,y,btnW,btnH)
+    ctx.strokeRect(x,y,btnW,btnH)
+
+    ctx.fillStyle = hover ? "black" : "cyan"
+    ctx.font = "20px monospace"
+    ctx.textAlign = "center"
+
+    ctx.fillText("Multiplayer", w/2, y + 32)
+
+    ctx.restore()
+
+    // salvar área clicável
+    multiButton = {x,y,w:btnW,h:btnH}
+}
+
 canvas.addEventListener("mousemove", e => {
     mouse.x = e.clientX
     mouse.y = e.clientY
@@ -525,9 +560,9 @@ canvas.addEventListener("mousemove", e => {
 
 canvas.addEventListener("click", () => {
 
-    if(!exitButton) return
+    //if(!exitButton) return
 
-    if(
+    if(exitButton &&
         mouse.x > exitButton.x &&
         mouse.x < exitButton.x + exitButton.w &&
         mouse.y > exitButton.y &&
@@ -536,6 +571,15 @@ canvas.addEventListener("click", () => {
         if(typeof showExitMenu === "function"){
             showExitMenu()
         }
+    }
+
+    if(multiButton &&
+        mouse.x > multiButton.x &&
+        mouse.x < multiButton.x + multiButton.w &&
+        mouse.y > multiButton.y &&
+        mouse.y < multiButton.y + multiButton.h
+    ){
+      window.location.href = "multi/multiMenu.html"
     }
 
 })

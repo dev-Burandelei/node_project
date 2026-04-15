@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Multiplayer</title>
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background: radial-gradient(circle, #0a0a0a, #000);
+    font-family: monospace;
+    color:cyan;
+}
+
+/* CONTAINER */
+.multiplayer{
+    background: rgba(0,0,0,0.6);
+    border:2px solid cyan;
+    padding:30px;
+    border-radius:15px;
+    text-align:center;
+    box-shadow:0 0 25px cyan;
+    width:90%;
+    max-width:400px;
+}
+
+/* TÍTULO */
+.multiplayer h2{
+    margin-bottom:20px;
+    text-shadow:0 0 10px cyan;
+}
+
+/* BOTÕES */
+.mp-buttons{
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.mp-buttons input{
+    flex:1;
+    padding:10px;
+    background:black;
+    border:2px solid cyan;
+    color:cyan;
+    outline:none;
+}
+
+.mp-buttons button{
+    padding:10px;
+    border:2px solid cyan;
+    background:transparent;
+    color:cyan;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.mp-buttons button:hover{
+    background:cyan;
+    color:black;
+    box-shadow:0 0 10px cyan;
+}
+
+/* INFO SALA */
+.room-info{
+    margin-top:10px;
+}
+
+.hidden{
+    display:none;
+}
+
+.room-info span{
+    color:#00ff88;
+    text-shadow:0 0 8px #00ff88;
+}
+
+/* STATUS */
+#status{
+    margin-top:15px;
+    font-weight:bold;
+}
+
+#status.offline{ color: gray; }
+#status.success{ color: #00ff88; text-shadow:0 0 8px #00ff88;}
+#status.error{ color: red; }
+
+/* BOTÃO SAIR */
+#leaveRoom{
+    margin-top:10px;
+    border:2px solid red;
+    color:red;
+}
+
+#leaveRoom:hover{
+    background:red;
+    color:black;
+    box-shadow:0 0 10px red;
+}
+
+#playersList{
+    margin-top:10px;
+    text-align:left;
+    font-size:14px;
+}
+
+.player{
+    padding:5px;
+    border-bottom:1px solid rgba(0,255,255,0.2);
+}
+
+#nickname{
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    background:black;
+    border:2px solid cyan;
+    color:cyan;
+    outline:none;
+}
+
+
+</style>
+
+</head>
+
+<body>
+
+<div class="multiplayer">
+    <h2>👥 MULTIPLAYER</h2>
+
+    <input id="nickname" placeholder="Seu nickname">
+
+    <div class="mp-buttons">
+        <button id="createRoom">Criar</button>
+        <input id="roomCode" placeholder="Código">
+        <button id="joinRoom">Entrar</button>
+    </div>
+
+    <div class="room-info hidden" id="roomInfo">
+        <p>Sala: <span id="currentRoom"></span></p>
+
+        <div id="playersList"></div>
+
+        <button id="copyRoom">📋 Copiar</button>
+        <button id="leaveRoom">❌ Sair</button>
+    </div>
+
+    <p id="status" class="offline">Offline</p>
+</div>
+
+<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const socket = io("http://localhost:3000");
+
+    const statusEl = document.getElementById("status");
+    const roomInfo = document.getElementById("roomInfo");
+    const currentRoomEl = document.getElementById("currentRoom");
+    const playersList = document.getElementById("playersList");
+
+    const createBtn = document.getElementById("createRoom");
+    const joinBtn = document.getElementById("joinRoom");
+    const input = document.getElementById("roomCode");
+    const nicknameInput = document.getElementById("nickname");
+
+    let currentRoom = null;
+
+    function setStatus(msg, type="offline"){
+        statusEl.textContent = msg;
+        statusEl.className = type;
+    }
+
+    function enterRoomUI(code){
+        currentRoom = code;
+        
+        currentRoomEl.textContent = code;
+        roomInfo.classList.remove("hidden");
+
+        createBtn.disabled = true;
+        joinBtn.disabled = true;
+        input.disabled = true;
+        nicknameInput.disabled = true;
+        nicknameInput.style.opacity = 0.5;
+
+        setStatus("🟢 Conectado", "success");
+    }
+
+    function leaveRoom(){
+        socket.emit("leaveRoom");
+
+        localStorage.removeItem("room");
+
+        roomInfo.classList.add("hidden");
+
+        createBtn.disabled = false;
+        joinBtn.disabled = false;
+        input.disabled = false;
+        nicknameInput.disabled = false;
+        nicknameInput.style.opacity = 1;
+
+        playersList.innerHTML = "";
+
+        setStatus("Offline", "offline");
+    }
+
+    // =====================
+    // BOTÕES
+    // =====================
+
+    createBtn.onclick = () => {
+        const nick = nicknameInput.value.trim();
+
+        if(!nick){
+            setStatus("❌ Digite um nickname", "error");
+            return;
+        }
+
+        socket.emit("createRoom", nick);
+    };
+
+    joinBtn.onclick = () => {
+        const code = input.value.trim().toUpperCase();
+        const nick = nicknameInput.value.trim();
+
+        if(!nick){
+            setStatus("❌ Digite um nickname", "error");
+            return;
+        }
+
+        if(!code){
+            setStatus("❌ Digite um código", "error");
+            return;
+        }
+
+        socket.emit("joinRoom", { code, nick });
+    };
+
+    document.getElementById("leaveRoom").onclick = leaveRoom;
+
+    document.getElementById("copyRoom").onclick = () => {
+        navigator.clipboard.writeText(currentRoomEl.textContent);
+        setStatus("📋 Copiado!", "success");
+    };
+
+    // =====================
+    // SOCKET EVENTS
+    // =====================
+
+    socket.on("roomCreated", (code) => {
+        enterRoomUI(code);
+        input.value = code;
+        localStorage.setItem("room", code);
+    });
+
+    socket.on("playersUpdate", (players) => {
+        playersList.innerHTML = "";
+
+        players.forEach(p => {
+            const div = document.createElement("div");
+            div.className = "player";
+            div.textContent = "👤 " + p;
+            playersList.appendChild(div);
+        });
+
+        setStatus(`👥 ${players.length} jogadores`, "success");
+    });
+
+    socket.on("errorMsg", (msg) => {
+        setStatus("❌ " + msg, "error");
+    });
+
+    setStatus("Offline", "offline");
+});
+</script>
+</body>
+</html>
