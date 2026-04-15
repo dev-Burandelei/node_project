@@ -190,8 +190,7 @@ body{
 document.addEventListener("DOMContentLoaded", () => {
 
     const socket = io("https://node-project-server-s945.onrender.com", {
-        autoConnect: false,
-        transports: ["websocket"] 
+        autoConnect: false
     });
 
     const statusEl = document.getElementById("status");
@@ -256,31 +255,26 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("🟡 Online (fora da sala)", "offline");
     }
 
-    // =====================
     // BOTÃO ONLINE
-    // =====================
+    onlineBtn.onclick = () => {
 
-   onlineBtn.onclick = () => {
+        if(!isOnline){
 
-    if(!isOnline){
+            const nick = validateNick();
+            if(!nick) return;
 
-        const nick = validateNick();
-        if(!nick) return;
+            setStatus("🔄 Conectando...", "offline");
+            onlineBtn.textContent = "⏳ Conectando...";
 
-        setStatus("🔄 Conectando...", "offline");
-        onlineBtn.textContent = "⏳ Conectando...";
+            socket.connect();
 
-        socket.connect();
+        } else {
 
-    } else {
-
-        socket.disconnect();
+            socket.disconnect();
         }
     };
 
-    // =====================
     // SOCKET EVENTS
-    // =====================
 
     socket.on("connect", () => {
         isOnline = true;
@@ -325,26 +319,12 @@ document.addEventListener("DOMContentLoaded", () => {
         setStatus("❌ " + msg, "error");
     });
 
-        io.on("connection", (socket) => {
-    console.log("Novo usuário conectado:", socket.id);
-
-    socket.on("disconnect", () => {
-        console.log("Usuário desconectado:", socket.id);
+    socket.on("connect_error", (err) => {
+        console.error("Erro conexão:", err.message);
+        setStatus("❌ Erro ao conectar", "error");
     });
-    });
-
-    const io = new Server(server, {
-    cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-    }
-    });
-    // =====================
-    // BOTÕES DE SALA
-    // =====================
 
     createBtn.onclick = () => {
-
         if(!isOnline){
             setStatus("❌ Fique online primeiro", "error");
             return;
@@ -357,7 +337,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     joinBtn.onclick = () => {
-
         if(!isOnline){
             setStatus("❌ Fique online primeiro", "error");
             return;
@@ -376,7 +355,6 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.emit("joinRoom", { code, nick });
     };
 
-    
     document.getElementById("leaveRoom").onclick = leaveRoom;
 
     document.getElementById("copyRoom").onclick = () => {
@@ -386,10 +364,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setStatus("Offline", "offline");
 });
-
-setInterval(() => {
-    console.log("Ping servidor ativo");
-}, 10000);
 </script>
 </body>
 </html>
