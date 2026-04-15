@@ -13,7 +13,7 @@ let rooms = {};
 io.on("connection", (socket) => {
 
     socket.on("createRoom", (nick) => {
-        const code = Math.random().toString(36).substring(2,6).toUpperCase();
+        const code = generateRoomCode(); 
 
         rooms[code] = [{ id: socket.id, nick }];
 
@@ -60,6 +60,17 @@ io.on("connection", (socket) => {
     });
 
 });
+
+function generateRoomCode() {
+    let code;
+    
+    do {
+        code = Math.random().toString(36).substring(2,7).toUpperCase();
+    } while (rooms[code]); 
+
+    return code;
+}
+
 app.get("/", (req, res) => {
     res.send("Servidor online 🚀");
 });
