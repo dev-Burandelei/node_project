@@ -123,6 +123,23 @@ body{
     outline:none;
 }
 
+#onlineBtn{
+    width:100%;
+    padding:10px;
+    margin-bottom:10px;
+    border:2px solid gray;
+    background:transparent;
+    color:gray;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+#onlineBtn.online{
+    border-color:#00ff88;
+    color:#00ff88;
+    box-shadow:0 0 10px #00ff88;
+}
+
 
 </style>
 
@@ -134,6 +151,8 @@ body{
     <h2>👥 MULTIPLAYER</h2>
 
     <input id="nickname" placeholder="Seu nickname">
+
+    <button id="onlineBtn">🔌 Ficar Online</button>
 
     <div class="mp-buttons">
         <button id="createRoom">Criar</button>
@@ -153,11 +172,14 @@ body{
     <p id="status" class="offline">Offline</p>
 </div>
 
-<script src="http://localhost:3000/socket.io/socket.io.js"></script>
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-    const socket = io("http://localhost:3000");
+    const socket = io("https://node-project-server-s945.onrender.com", {
+        autoConnect: false,
+        transports: ["websocket"] 
+    });
 
     const statusEl = document.getElementById("status");
     const roomInfo = document.getElementById("roomInfo");
@@ -168,17 +190,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const joinBtn = document.getElementById("joinRoom");
     const input = document.getElementById("roomCode");
     const nicknameInput = document.getElementById("nickname");
+    const onlineBtn = document.getElementById("onlineBtn");
 
     let currentRoom = null;
+    let isOnline = false;
 
     function setStatus(msg, type="offline"){
         statusEl.textContent = msg;
         statusEl.className = type;
     }
 
+    function validateNick(){
+        const nick = nicknameInput.value.trim();
+
+        if(!nick){
+            setStatus("❌ Digite um nickname", "error");
+            return null;
+        }
+
+        return nick;
+    }
+
     function enterRoomUI(code){
         currentRoom = code;
-        
+
         currentRoomEl.textContent = code;
         roomInfo.classList.remove("hidden");
 
@@ -186,15 +221,14 @@ document.addEventListener("DOMContentLoaded", () => {
         joinBtn.disabled = true;
         input.disabled = true;
         nicknameInput.disabled = true;
-        nicknameInput.style.opacity = 0.5;
 
-        setStatus("🟢 Conectado", "success");
+        setStatus("🟢 Dentro da sala", "success");
     }
 
     function leaveRoom(){
-        socket.emit("leaveRoom");
-
-        localStorage.removeItem("room");
+        if(currentRoom){
+            socket.emit("leaveRoom", currentRoom);
+        }
 
         roomInfo.classList.add("hidden");
 
@@ -202,63 +236,65 @@ document.addEventListener("DOMContentLoaded", () => {
         joinBtn.disabled = false;
         input.disabled = false;
         nicknameInput.disabled = false;
-        nicknameInput.style.opacity = 1;
 
         playersList.innerHTML = "";
+        currentRoom = null;
 
-        setStatus("Offline", "offline");
+        setStatus("🟡 Online (fora da sala)", "offline");
     }
 
     // =====================
-    // BOTÕES
+    // BOTÃO ONLINE
     // =====================
 
-    createBtn.onclick = () => {
-        const nick = nicknameInput.value.trim();
+   onlineBtn.onclick = () => {
 
-        if(!nick){
-            setStatus("❌ Digite um nickname", "error");
-            return;
+    if(!isOnline){
+
+        const nick = validateNick();
+        if(!nick) return;
+
+        setStatus("🔄 Conectando...", "offline");
+
+        socket.connect();
+
+    } else {
+
+        socket.disconnect();
         }
-
-        socket.emit("createRoom", nick);
-    };
-
-    joinBtn.onclick = () => {
-        const code = input.value.trim().toUpperCase();
-        const nick = nicknameInput.value.trim();
-
-        if(!nick){
-            setStatus("❌ Digite um nickname", "error");
-            return;
-        }
-
-        if(!code){
-            setStatus("❌ Digite um código", "error");
-            return;
-        }
-
-        socket.emit("joinRoom", { code, nick });
-    };
-
-    document.getElementById("leaveRoom").onclick = leaveRoom;
-
-    document.getElementById("copyRoom").onclick = () => {
-        navigator.clipboard.writeText(currentRoomEl.textContent);
-        setStatus("📋 Copiado!", "success");
     };
 
     // =====================
     // SOCKET EVENTS
     // =====================
 
+    socket.on("connect", () => {
+        isOnline = true;
+
+        onlineBtn.textContent = "🟢 Online";
+        onlineBtn.classList.add("online");
+
+        setStatus("🟢 Conectado ao servidor", "success");
+    });
+
+    socket.on("disconnect", () => {
+        isOnline = false;
+
+        onlineBtn.textContent = "🔌 Ficar Online";
+        onlineBtn.classList.remove("online");
+
+        leaveRoom();
+
+        setStatus("🔴 Desconectado", "error");
+    });
+
     socket.on("roomCreated", (code) => {
         enterRoomUI(code);
         input.value = code;
-        localStorage.setItem("room", code);
     });
 
     socket.on("playersUpdate", (players) => {
+
         playersList.innerHTML = "";
 
         players.forEach(p => {
@@ -274,6 +310,50 @@ document.addEventListener("DOMContentLoaded", () => {
     socket.on("errorMsg", (msg) => {
         setStatus("❌ " + msg, "error");
     });
+
+    // =====================
+    // BOTÕES DE SALA
+    // =====================
+
+    createBtn.onclick = () => {
+
+        if(!isOnline){
+            setStatus("❌ Fique online primeiro", "error");
+            return;
+        }
+
+        const nick = validateNick();
+        if(!nick) return;
+
+        socket.emit("createRoom", nick);
+    };
+
+    joinBtn.onclick = () => {
+
+        if(!isOnline){
+            setStatus("❌ Fique online primeiro", "error");
+            return;
+        }
+
+        const code = input.value.trim().toUpperCase();
+        const nick = validateNick();
+
+        if(!nick) return;
+
+        if(!code){
+            setStatus("❌ Digite um código", "error");
+            return;
+        }
+
+        socket.emit("joinRoom", { code, nick });
+    };
+
+    document.getElementById("leaveRoom").onclick = leaveRoom;
+
+    document.getElementById("copyRoom").onclick = () => {
+        navigator.clipboard.writeText(currentRoomEl.textContent);
+        setStatus("📋 Copiado!", "success");
+    };
 
     setStatus("Offline", "offline");
 });

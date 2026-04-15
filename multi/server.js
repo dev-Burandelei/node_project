@@ -60,5 +60,8 @@ io.on("connection", (socket) => {
     });
 
 });
-
-server.listen(3000, () => console.log("Server rodando"));
+app.get("/", (req, res) => {
+    res.send("Servidor online 🚀");
+});
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => console.log("Server rodando"));
