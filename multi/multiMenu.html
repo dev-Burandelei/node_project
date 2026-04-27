@@ -152,6 +152,35 @@ body{
 #onlineBtn:active{
     transform:scale(0.95);
 }
+#startGame{
+    margin-top:10px;
+    border:2px solid #00ff88;
+    color:#00ff88;
+    background:transparent;
+    padding:10px;
+    cursor:pointer;
+    transition: all 0.3s ease;
+    width:100%;
+
+}
+
+#startGame[disabled]{
+    opacity:0.5;
+    cursor:not-allowed;
+}
+
+#startGame:hover{
+    background:#00ff88;
+    color:black;
+    box-shadow:0 0 10px #00ff88;
+}
+
+#startGame:disabled{
+    border-color:gray;
+    color:gray;
+    cursor:not-allowed;
+    box-shadow:none;
+}
 
 
 </style>
@@ -180,6 +209,7 @@ body{
 
         <button id="copyRoom">📋 Copiar</button>
         <button id="leaveRoom">❌ Sair</button>
+        <button id="startGame" class="hidden">▶ Jogar</button>
     </div>
 
     <p id="status" class="offline">Offline</p>
@@ -204,8 +234,11 @@ document.addEventListener("DOMContentLoaded", () => {
     const nicknameInput = document.getElementById("nickname");
     const onlineBtn = document.getElementById("onlineBtn");
 
+    const startBtn = document.getElementById("startGame");
+
     let currentRoom = null;
     let isOnline = false;
+    let myId = null;
 
     function setStatus(msg, type="offline"){
         statusEl.textContent = msg;
@@ -243,6 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         roomInfo.classList.add("hidden");
+        startBtn.classList.add("hidden");
 
         createBtn.disabled = false;
         joinBtn.disabled = false;
@@ -277,6 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // SOCKET EVENTS
 
     socket.on("connect", () => {
+        myId = socket.id;
         isOnline = true;
 
         onlineBtn.textContent = "🟢 Online";
@@ -301,7 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
         input.value = code;
     });
 
-    socket.on("playersUpdate", (players) => {
+    socket.on("playersUpdate", (data) => {
+
+        const { players, host } = data;
 
         playersList.innerHTML = "";
 
@@ -312,7 +349,24 @@ document.addEventListener("DOMContentLoaded", () => {
             playersList.appendChild(div);
         });
 
-        setStatus(`👥 ${players.length} jogadores`, "success");
+        startBtn.classList.remove("hidden");
+        startBtn.disabled = true;
+
+        if(players.length >= 2){
+
+            const isHost = myId === host;
+
+            if(isHost){
+                startBtn.disabled = false;
+                setStatus("🟢 Você pode iniciar o jogo", "success");
+            } else {
+                setStatus("⏳ Aguardando host iniciar...", "offline");
+            }
+
+        } else {
+            setStatus(`👥 ${players.length}/2 jogadores`, "offline");
+        }
+
     });
 
     socket.on("errorMsg", (msg) => {
@@ -355,6 +409,21 @@ document.addEventListener("DOMContentLoaded", () => {
         socket.emit("joinRoom", { code, nick });
     };
 
+    startBtn.onclick = () => {
+        if(currentRoom){
+            socket.emit("startGame", currentRoom);
+        }
+    };
+
+    socket.on("gameStarted", () => {
+        setStatus("🎮 Iniciando jogo...", "success");
+
+        setTimeout(() => {
+            window.location.href = "pong.html?room=" + currentRoom;
+        }, 800);
+    });
+
+
     document.getElementById("leaveRoom").onclick = leaveRoom;
 
     document.getElementById("copyRoom").onclick = () => {
@@ -364,6 +433,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setStatus("Offline", "offline");
 });
+
 </script>
+
 </body>
 </html>
