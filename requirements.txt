@@ -1,0 +1,36 @@
+# ==============================================================
+# Requisitos do projeto — Arcade Hub / Pong (node_project)
+# ==============================================================
+# Projeto Node.js: as dependências são gerenciadas pelo npm
+# (multi/package.json + multi/package-lock.json). Este arquivo é
+# um resumo legível de tudo o que o projeto precisa para rodar.
+
+# --------------------------------------------------------------
+# 1. Ambiente
+# --------------------------------------------------------------
+# Node.js  >= 18 (LTS recomendado; o package.json não define "engines")
+# npm      >= 9  (instalado junto com o Node.js)
+# Navegador moderno com suporte a Canvas 2D e WebSocket
+
+# --------------------------------------------------------------
+# 2. Dependências do servidor multiplayer (npm)
+#    Instalar com:  cd multi && npm install
+# --------------------------------------------------------------
+express@^4.22.1      # versão travada no lockfile: 4.22.1
+socket.io@^4.8.3     # versão travada no lockfile: 4.8.3
+
+# --------------------------------------------------------------
+# 3. Bibliotecas carregadas pelo navegador via CDN (sem instalação)
+# --------------------------------------------------------------
+# Socket.IO client 4.7.5   https://cdn.socket.io/4.7.5/socket.io.min.js
+# Spotify Web Playback SDK https://sdk.scdn.co/spotify-player.js
+# Spotify Embed (iframe)   https://open.spotify.com/embed/playlist/...
+
+# --------------------------------------------------------------
+# 4. Opcional (desenvolvimento do front-end)
+# --------------------------------------------------------------
+# Um servidor HTTP estático para servir a raiz do projeto, por exemplo:
+#   - extensão "Live Server" do VS Code (porta 5500), ou
+#   - npx serve .
+# O login com Spotify usa redirect URI em http://127.0.0.1:5500/...
+# e o Web Playback SDK exige conta Spotify Premium.
